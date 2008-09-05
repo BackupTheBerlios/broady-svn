@@ -24,7 +24,7 @@ static void E_clearClients( void );
 static int E_read( unsigned int len );
 static int E_parse( unsigned char* packet, unsigned int len, unsigned long ip, unsigned short port );
 static client_t* E_getClient( unsigned long ip, unsigned short port );
-static client_t* E_addClient( unsigned long ip, unsigned short port, int node );
+static client_t* E_addClient( unsigned long ip, unsigned short port, int node, unsigned long node_ip, unsigned short node_port );
 static void E_delClient( unsigned long ip, unsigned short port );
 static int E_onShake( unsigned char* packet, unsigned int len, unsigned long ip, unsigned short port );
 static int E_onBroadcast( unsigned char* packet, unsigned int len, unsigned long ip, unsigned short port );
@@ -125,7 +125,7 @@ static client_t* E_getClient( unsigned long ip, unsigned short port ) {
 	client_t* client = NULL;
 
 	for( client = E.clients; client; client = client->next ) {
-		if( !memcpy( &client->ip, &ip, sizeof( client->ip ) ) && client->port == port ) {
+		if( client->ip == ip && client->port == port ) {
 			break;
 		}
 	}
@@ -138,11 +138,15 @@ static client_t* E_addClient( unsigned long ip, unsigned short port, int node, u
 
 	client = malloc( sizeof( *client ) );
 	client->next = E.clients;
-	memcpy( &client->ip, &ip, sizeof( client->ip ) );
+	client->ip = ip;
 	client->port = port;
 	client->node = node;
 	client->node_ip = node_ip;
 	client->node_port = node_port;
+	client->pingTimeout.interval = 10000;
+	client->pingInterval.interval = 2000;
+	T_init( &client->pingTimeout );
+	T_init( &client->pingInterval );
 	E.clients = client;
 
 	return client;
@@ -153,7 +157,7 @@ static void E_delClient( unsigned long ip, unsigned short port ) {
 	client_t* prev = NULL;
 
 	for( client = E.clients; client; client = client->next ) {
-		if( !memcpy( &client->ip, &ip, sizeof( client->ip ) ) && client->port == port ) {
+		if( client->ip == ip && client->port == port ) {
 			if( prev == NULL ) {
 				client = client->next;
 				free( E.clients );
@@ -166,6 +170,48 @@ static void E_delClient( unsigned long ip, unsigned short port ) {
 			break;
 		}
 	}
+}
+
+static int E_sendPing( client_t* client, unsigned int id ) {
+	char buffer[ 16 ];
+	unsigned int len = 0;
+
+	*buffer = E_PACKET_PING;
+	len++;
+
+	memcpy( buffer + len, &id, sizeof( id ) );
+	len += sizeof( id );
+
+	return N_sendto( E.sck, buffer, len, client->ip, client->port );
+}
+
+static int E_sendBroadcast( client_t* client, const unsigned char* packet, unsigned int plen, unsigned short port ) {
+	char buffer[ 2048 ];
+	unsigned int len = 0;
+
+	*buffer = E_PACKET_BROADCAST;
+	len++;
+
+	memcpy( buffer + len, &port, sizeof( port ) );
+	len += sizeof( port );
+
+	memcpy( buffer + len, packet, plen );
+	len += plen;
+
+	return N_sendto( E.sck, buffer, len, client->ip, client->port );
+}
+
+static int E_sendShake( unsigned int id, unsigned long ip, unsigned short port ) {
+	char buffer[ 256 ];
+	unsigned int len = 0;
+
+	*buffer = E_PACKET_SHAKE;
+	len++;
+
+	memcpy( buffer + len, &id, sizeof( id ) );
+	len += sizeof( id );
+
+	return N_sendto( E.sck, buffer, len, ip, port );
 }
 
 static int E_onShake( unsigned char* packet, unsigned int len, unsigned long ip, unsigned short port ) {
@@ -199,7 +245,9 @@ static int E_onShake( unsigned char* packet, unsigned int len, unsigned long ip,
 }
 
 static int E_onBroadcast( unsigned char* packet, unsigned int len, unsigned long ip, unsigned short port ) {
-	client_t* client;
+	client_t* client = NULL;
+	unsigned short bport = 0;
+	ip_address ipaddr;
 
 	client = E_getClient( ip, port );
 
@@ -207,19 +255,29 @@ static int E_onBroadcast( unsigned char* packet, unsigned int len, unsigned long
 		return 0;
 	}
 
-	L_sendBroadcast( client, packet, len );
+	memcpy( &bport, packet, sizeof( bport ) );
+	packet += sizeof( bport );
+	len -= sizeof( bport );
+
+	L_sendBroadcast( client, packet, len, bport );
 	printf( "Received %u bytes.\n", len );
 
-	printf( "From %d.%d.%d.%d:%d\tTo %d.%d.%d.%d:%d\n",
-		client->ip.byte1,
-		client->ip.byte2,
-		client->ip.byte3,
-		client->ip.byte4,
-		client->port,
-		client->node_ip.byte1,
-		client->node_ip.byte2,
-		client->node_ip.byte3,
-		client->node_ip.byte4,
+	memcpy( &ipaddr, &client->ip, sizeof( client->ip ) );
+
+	printf( "From %u.%u.%u.%u:%u\t",
+		ipaddr.byte1,
+		ipaddr.byte2,
+		ipaddr.byte3,
+		ipaddr.byte4,
+		client->port );
+
+	memcpy( &ipaddr, &client->node_ip, sizeof( client->node_ip ) );
+
+	printf( "To %u.%u.%u.%u:%u\n",
+		ipaddr.byte1,
+		ipaddr.byte2,
+		ipaddr.byte3,
+		ipaddr.byte4,
 		client->node_port );
 
 	return 1;
@@ -255,22 +313,32 @@ static int E_parse( unsigned char* packet, unsigned int len, unsigned long ip, u
 
 		case E_PACKET_PING: {
 			retval = E_onPing( data, len, ip, port );
+
+			break;
 		}
 
 		case E_PACKET_DATA: {
 			retval = E_onData( data, len, ip, port );
+
+			break;
 		}
 
 		case E_PACKET_BROADCAST: {
 			retval = E_onBroadcast( data, len, ip, port );
+
+			break;
 		}
 
 		case E_PACKET_QUIT: {
 			retval = E_onQuit( data, len, ip, port );
+
+			break;
 		}
 
 		case E_PACKET_SHAKE: {
 			retval = E_onShake( data, len, ip, port );
+
+			break;
 		}
 	}
 
@@ -298,6 +366,38 @@ static int E_read( unsigned int len ) {
 
 int E_step( void ) {
 	unsigned int len = 0;
+	client_t* client = NULL;
+	client_t* prev = NULL;
+
+	client = E.clients;
+
+	while( client ) {
+		T_update( &client->pingTimeout );
+
+		if( T_fire( &client->pingTimeout ) ) {
+			client_t* next = client->next;
+
+			if( prev == NULL ) {
+				E.clients = next;
+			} else {
+				prev->next = next;
+			}
+
+			free( client );
+			client = next;
+
+			continue;
+		}
+
+		T_update( &client->pingInterval );
+
+		if( T_fire( &client->pingInterval ) ) {
+			E_sendPing( client, client->pingInterval.current );
+			T_init( &client->pingInterval );
+		}
+
+		client = client->next;
+	}
 
 	if( !N_ioctl( E.sck, &len ) ) {
 		return 0;
@@ -310,33 +410,31 @@ int E_step( void ) {
 	return E_read( len );
 }
 
-int E_in_S( const unsigned char* packet, unsigned int len ) {
-	unsigned char* buffer;
-	ip_header* ih;
-	udp_header* uh;
-	u_int ip_len;
+int E_in_S( const unsigned char* packet, unsigned int plen ) {
+	const unsigned char* data = NULL;
+	unsigned int len = 0;
+	const ip_header* ih = NULL;
+	const udp_header* uh = NULL;
+	unsigned int ip_len = 0;
+	unsigned short port = 0;
+	client_t* client = NULL;
 
-	buffer = malloc( len );
-	memcpy( buffer, packet, len );
-
-	ih = ( ip_header* )( buffer + 14 );
+	ih = ( const ip_header* )( packet + 14 );
 	ip_len = ( ih->ver_ihl & 0xF ) * 4;
-	uh = ( udp_header* )( ( unsigned char* ) ih + ip_len );
+	uh = ( const udp_header* )( ( const unsigned char* ) ih + ip_len );
+	port = uh->dport;
+	len = uh->len;
+	data = ( const unsigned char* ) uh + sizeof( *uh );
 
-	memcpy( &ih->saddr, &E.ip, 4 );
-	ih->crc = 0;
-	ih->crc = ip_sum_calc( ip_len, ( void* ) ih );
 	printf( "Transferring %u bytes\n", len );
 
-	/*for( i = 0; i < sizeof( S.network_list ) / sizeof( *network_list ); i++ ) {
-		if( memcmp( &emit_addr, &network_list[i], 4 ) == 0 ) {
+	for( client = E.clients; client; client = client->next ) {
+		/*if( !client->registered ) {
 			continue;
-		}
+		}*/
 
-		emit_send( sck, &network_list[i], buffer, len );
-	}*/
-
-	free( buffer );
+		E_sendBroadcast( client, data, len, port );
+	}
 
 	return 1;
 }

@@ -60,11 +60,10 @@ int N_socket( int* sck ) {
 		return 0;
 	}
 
-	*sck = socket( PF_INET + 2, SOCK_DGRAM, IPPROTO_UDP );
+	*sck = socket( PF_INET, SOCK_DGRAM, IPPROTO_UDP );
 
 	if( *sck == INVALID_SOCKET ) {
 		fprintf( stderr, "\n%s failed: %d\n", __FUNCTION__, WSAGetLastError( ) );
-		perror( NULL );
 
 		return 0;
 	}
@@ -126,10 +125,10 @@ int N_bind( int sck, unsigned long ip, unsigned short port ) {
 
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons( port );
-	addr.sin_addr.s_addr = htonl( ip );
+	addr.sin_addr.s_addr = ip;
 
 	if( bind( sck, ( const struct sockaddr* ) &addr, sizeof( addr ) ) == -1 ) {
-		fprintf( stderr, "\nFailed to bind socket: %d\n", WSAGetLastError( ) );
+		fprintf( stderr, "\n%s failed: %d\n", __FUNCTION__, WSAGetLastError( ) );
 
 		return 0;
 	}

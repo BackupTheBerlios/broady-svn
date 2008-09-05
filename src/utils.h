@@ -6,21 +6,21 @@
 #include "T.h"
 
 typedef struct ip_address {
-	u_char byte1;
-	u_char byte2;
-	u_char byte3;
-	u_char byte4;
+	unsigned char byte1;
+	unsigned char byte2;
+	unsigned char byte3;
+	unsigned char byte4;
 
 } ip_address;
 
 typedef struct client_s {
 	struct client_s* next;
 
-	ip_address ip;
+	unsigned long ip;
 	unsigned short port;
 
 	int node;
-	ip_address node_ip;
+	unsigned long node_ip;
 	unsigned short node_port;
 
 	unsigned int shakeID;
