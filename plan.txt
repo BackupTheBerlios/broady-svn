@@ -1,0 +1,20 @@
+PreInit
+	Load the configurations for the user (local/sniffing IP, network/VPN IP)
+
+Init
+	Initialize all the systems (N, E, S)
+
+PostInit
+	Send a shake to everyone on the list.
+
+Step
+	Run a step of the systems (S, E)
+
+PreQuit
+	Send goodbye to all connected clients.
+
+Quit
+	Terminate all the systems (S, E, N)
+
+PostQuit
+	Check for remaining allocated memory (leaks)
