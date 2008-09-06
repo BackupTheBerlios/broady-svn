@@ -239,6 +239,7 @@ static int E_onShake( unsigned char* packet, unsigned int len, unsigned long ip,
 		return E_sendShake( id, ip, port );
 	} else {
 		/* TODO */
+		/* has the client replied yet? Y: then ignore this, N: now it has */
 	}
 
 	return 1;
@@ -284,7 +285,28 @@ static int E_onBroadcast( unsigned char* packet, unsigned int len, unsigned long
 }
 
 static int E_onPing( unsigned char* packet, unsigned int len, unsigned long ip, unsigned short port ) {
-	/* TODO */
+	client_t* client = NULL;
+	unsigned int id = 0;
+
+	client = E_getClient( ip, port );
+
+	if( client == NULL ) {
+		return 0;
+	}
+
+	memcpy( &id, packet, sizeof( id ) );
+	packet += sizeof( id );
+	len -= sizeof( id );
+
+	if( client->lastPingID == id ) {
+		/* okay, we got our reply... */
+	} else {
+		E_sendPing( client, id );
+	}
+
+	T_init( &client->pingTimeout );
+	T_init( &client->pingInterval );
+
 	return 1;
 }
 
