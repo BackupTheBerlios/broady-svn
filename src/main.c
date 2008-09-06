@@ -5,6 +5,7 @@
 #include "N.h"
 #include "M.h"
 
+/* these are just temporary solutions to a config file */
 const ip_address network_list[] = {
 	{ 5, 76, 128, 83 },		/* Tide */
 	{ 5, 23, 238, 188 },	/* Wolf */
@@ -109,23 +110,20 @@ void PostQuit( void ) {
 	M_dumpLeaks( );
 }
 
-void DoQuit( void ) {
-	PreQuit( );
-	Quit( );
-	PostQuit( );
-}
-
 int main( void ) {
 	if( !PreInit( ) ) {
 		return -3;
 	}
 
 	if( !Init( ) ) {
+		PostQuit( );
+
 		return -2;
 	}
 
 	if( !PostInit( ) ) {
-		DoQuit( );
+		Quit( );
+		PostQuit( );
 
 		return -1;
 	}
@@ -133,7 +131,9 @@ int main( void ) {
 	while( Step( ) )
 		;
 
-	DoQuit( );
+	PreQuit( );
+	Quit( );
+	PostQuit( );
 
 	return 0;
 }
