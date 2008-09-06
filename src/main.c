@@ -1,87 +1,139 @@
 #include "utils.h"
 #include "S.h"
-#include "B.h"
 #include "E.h"
 #include "L.h"
+#include "N.h"
+#include "M.h"
 
 const ip_address network_list[] = {
 	{ 5, 76, 128, 83 },		/* Tide */
 	{ 5, 23, 238, 188 },	/* Wolf */
 };
 
-int emit_receive( int sck );
-int emit_transfer( int sck, const u_char* data, unsigned long len );
+static pcap_if_t* alldevs = NULL;
+static pcap_if_t* emit_dev = NULL;
+static pcap_if_t* sniff_dev = NULL;
 
-int main( void ) {
-	pcap_if_t* alldevs;
-	char errbuf[PCAP_ERRBUF_SIZE];
-	pcap_if_t* emit_dev;
-	pcap_if_t* sniff_dev;
-
-	if( pcap_findalldevs( &alldevs, errbuf ) == -1 ) {
-		fprintf( stderr, "Error in pcap_findalldevs: %s\n", errbuf );
-		exit( 1 );
-	}
+int PreInit( void ) {
+	/* load config */
+	alldevs = get_alldevs( );
 
 	if( alldevs == NULL ) {
-		printf( "\nNo interfaces found! Make sure WinPcap is installed.\n" );
-
-		return -1;
+		return 0;
 	}
 
 	sniff_dev = get_iface( "SNIFFING", alldevs );
 
 	if( sniff_dev == NULL ) {
-		goto hell;
+		free_alldevs( alldevs );
+
+		return 0;
 	}
 
 	emit_dev = get_iface( "TRANSMITTING", alldevs );
 
 	if( emit_dev == NULL ) {
-		goto hell;
+		free_alldevs( alldevs );
+
+		return 0;
 	}
 
 	system( "cls" );
 
-	printf( "Listening on %s\n", sniff_dev->description );
-	printf( "Transmitting on %s\n\n", emit_dev->description );
+	return 1;
+}
+
+int Init( void ) {
+	if( !N_init( ) ) {
+		fprintf( stderr, "\nFailed to initialize N.\n" );
+		free_alldevs( alldevs );
+
+		return 0;
+	}
 
 	if( !S_init( sniff_dev ) ) {
 		fprintf( stderr, "\nFailed to initialize S.\n" );
+		free_alldevs( alldevs );
 
-		goto hell;
+		return 0;
 	}
 
 	if( !E_init( emit_dev ) ) {
 		fprintf( stderr, "\nFailed to initialize E.\n" );
+		free_alldevs( alldevs );
 
-		goto hell;
+		return 0;
 	}
 
-	pcap_freealldevs( alldevs );
-
-	while( 1 ) {
-		S_step( );
-		E_step( );
-	}
-
-	return 0;
-
-hell:
-	pcap_freealldevs( alldevs );
-	S_quit( );
-	E_quit( );
-
-	return -1;
+	return 1;
 }
 
+int PostInit( void ) {
+	printf( "Listening on %s\n", sniff_dev->description );
+	printf( "Transmitting on %s\n\n", emit_dev->description );
 
-int emit_send( int sck, const ip_address* to, const char* data, unsigned long len ) {
-	struct sockaddr_in addr;
+	free_alldevs( alldevs );
+	alldevs = NULL;
+	sniff_dev = NULL;
+	emit_dev = NULL;
 
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons( 16788 );
-	memcpy( &addr.sin_addr, to, sizeof( addr.sin_addr ) );
+	return 1;
+}
 
-	return sendto( sck, data, len, 0, ( const struct sockaddr* ) &addr, sizeof( addr ) );
+int Step( void ) {
+	if( !S_step( ) ) {
+		fprintf( stderr, "\nS failed.\n" );
+
+		return 0;
+	}
+
+	if( !E_step( ) ) {
+		fprintf( stderr, "\nE failed.\n" );
+
+		return 0;
+	}
+
+	return 1;
+}
+
+void PreQuit( void ) {
+}
+
+void Quit( void ) {
+	S_quit( );
+	E_quit( );
+	N_quit( );
+}
+
+void PostQuit( void ) {
+	M_dumpLeaks( );
+}
+
+void DoQuit( void ) {
+	PreQuit( );
+	Quit( );
+	PostQuit( );
+}
+
+int main( void ) {
+	if( !PreInit( ) ) {
+		return -3;
+	}
+
+	if( !Init( ) ) {
+		return -2;
+	}
+
+	if( !PostInit( ) ) {
+		DoQuit( );
+
+		return -1;
+	}
+
+	while( Step( ) )
+		;
+
+	DoQuit( );
+
+	return 0;
 }

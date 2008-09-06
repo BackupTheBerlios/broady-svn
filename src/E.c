@@ -2,6 +2,7 @@
 #include "N.h"
 #include "L.h"
 #include "T.h"
+#include "M.h"
 #include "utils.h"
 
 #define E_PACKET_PING			1
@@ -116,7 +117,7 @@ static void E_clearClients( void ) {
 
 	while( E.clients ) {
 		client = E.clients->next;
-		free( E.clients );
+		M_free( E.clients );
 		E.clients = client;
 	}
 }
@@ -136,7 +137,7 @@ static client_t* E_getClient( unsigned long ip, unsigned short port ) {
 static client_t* E_addClient( unsigned long ip, unsigned short port, int node, unsigned long node_ip, unsigned short node_port ) {
 	client_t* client;
 
-	client = malloc( sizeof( *client ) );
+	client = M_alloc( sizeof( *client ) );
 	client->next = E.clients;
 	client->ip = ip;
 	client->port = port;
@@ -160,11 +161,11 @@ static void E_delClient( unsigned long ip, unsigned short port ) {
 		if( client->ip == ip && client->port == port ) {
 			if( prev == NULL ) {
 				client = client->next;
-				free( E.clients );
+				M_free( E.clients );
 				E.clients = client;
 			} else {
 				prev->next = client->next;
-				free( client );
+				M_free( client );
 			}
 
 			break;
@@ -364,7 +365,7 @@ static int E_parse( unsigned char* packet, unsigned int len, unsigned long ip, u
 		}
 	}
 
-	free( packet );
+	M_free( packet );
 
 	return retval;
 }
@@ -374,11 +375,11 @@ static int E_read( unsigned int len ) {
 	unsigned long ip = 0;
 	unsigned short port = 0;
 
-	buffer = malloc( len );
+	buffer = M_alloc( len );
 
 	if( !N_recvfrom( E.sck, buffer, &len, &ip, &port ) ) {
 		fprintf( stderr, "\nError receiving.\n" );
-		free( buffer );
+		M_free( buffer );
 
 		return 0;
 	}
@@ -405,7 +406,7 @@ int E_step( void ) {
 				prev->next = next;
 			}
 
-			free( client );
+			M_free( client );
 			client = next;
 
 			continue;
