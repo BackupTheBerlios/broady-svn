@@ -13,6 +13,8 @@ Special thanks to TideUltra, who helped me test this until it worked. Sorry for 
 Finally, Broady has been tested and it works.
 It might have a few bugs and there is a known memory leak, but it shouldn't cause you any trouble.
 
+NOTE: Win32 users must have WinPcap installed. http://www.winpcap.org/
+
 
 Q: How do I use it?
 A: Pretty simple, when it loads, it displays what it has loaded from the "network.txt" file. If it did not load correctly, close Broady, change the file, and try again.
@@ -23,5 +25,8 @@ A: Pretty simple, when it loads, it displays what it has loaded from the "networ
 
 Q: In my "stderr.txt" file, I see "N_recvfrom failed: 10054". What should I do?
 A: This is simply an error saying it was unable to reach the remote computer. You can ignore those.
+
+Q: Where does the name 'Broady' come from?
+A: Broady was decided quickly, as most websites for Open Source Software (OSS) ask you to enter a name to your project when you register it. Since I did not pick any, and UDPNet (the name of the first version of Broady) did not seem like a good name, I went for Broady as it sniffs BROADcast packets, hence Broady ('Broad' for Broadcast, and the 'y' to make it sound more human).
 
 For any questions or comments, please visit http://developer.berlios.de/projects/broady/
