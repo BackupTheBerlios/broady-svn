@@ -73,6 +73,7 @@ int Init( void ) {
 }
 
 int PostInit( void ) {
+	/*freopen( "logfile.log", "wt", stdout );*/
 	printf( "Listening on %s\n", sniff_dev->description );
 	printf( "Transmitting on %s\n\n", emit_dev->description );
 
@@ -136,10 +137,12 @@ int main( void ) {
 
 	while( Step( ) ) {
 		if( _kbhit( ) ) {
-			if( ( _getch( ) & 223 ) == 'Q' ) {
+			if( _getch( ) == 'q' ) {
 				break;
 			}
 		}
+
+		_flushall( );
 	}
 
 	PreQuit( );

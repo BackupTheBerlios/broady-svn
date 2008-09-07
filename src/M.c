@@ -82,8 +82,8 @@ void M_dumpLeaks( void ) {
 		count++;
 		next = block->next;
 
-		fprintf( stderr, "M >> LEAK >> %u (%u) bytes >> %s >> %s >> %u\n",
-				block->size, block->size + sizeof( *block ), block->file, block->function, block->line );
+		fprintf( stderr, "M >> LEAK %p >> %u (%u) bytes >> %s >> %s >> %u\n",
+				block->ptr, block->size, block->size + sizeof( *block ), block->file, block->function, block->line );
 
 		free( block );
 

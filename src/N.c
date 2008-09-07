@@ -83,10 +83,10 @@ int N_close( int sck ) {
 	return 1;
 }
 
-int N_sendto( int sck, const void* data, unsigned int len, unsigned long ip, unsigned short port ) {
+int N_sendto( int sck, const void* data, unsigned int* len, unsigned long ip, unsigned short port ) {
 	struct sockaddr_in addr;
 
-	if( sck == INVALID_SOCKET || data == NULL || len == 0 ) {
+	if( sck == INVALID_SOCKET || data == NULL || len == NULL || *len == 0 ) {
 		return 0;
 	}
 
@@ -94,11 +94,15 @@ int N_sendto( int sck, const void* data, unsigned int len, unsigned long ip, uns
 	addr.sin_port = htons( port );
 	addr.sin_addr.s_addr = ip;
 
-	if( sendto( sck, data, len, 0, ( const struct sockaddr* ) &addr, sizeof( addr ) ) == -1 ) {
+	if( ( *len = sendto( sck, data, *len, 0, ( const struct sockaddr* ) &addr, sizeof( addr ) ) ) == -1 ) {
 		fprintf( stderr, "\n%s failed: %d\n", __FUNCTION__, N.lastError = WSAGetLastError( ) );
 
 		return 0;
 	}
+
+	#if DEBUG
+	printf( ">> %u\n", *len );
+	#endif
 
 	return 1;
 }
@@ -117,6 +121,18 @@ int N_ioctl( int sck, unsigned int* len ) {
 	}
 
 	*len = arg;
+
+	return 1;
+}
+
+int N_setBroadcast( int sck, int opt ) {
+	char c = opt ? 1 : 0;
+
+	if( setsockopt( sck, SOL_SOCKET, SO_BROADCAST, &c, sizeof( c ) ) == -1 ) {
+		fprintf( stderr, "\n%s failed: %d\n", __FUNCTION__, N.lastError = WSAGetLastError( ) );
+
+		return 0;
+	}
 
 	return 1;
 }
@@ -140,7 +156,7 @@ int N_bind( int sck, unsigned long ip, unsigned short port ) {
 int N_recvfrom( int sck, void* buffer, unsigned int* len, unsigned long* ip, unsigned short* port ) {
 	unsigned long arg = 1;
 	struct sockaddr_in addr;
-	unsigned int size;
+	unsigned int size = sizeof( addr );
 
 	if( sck == INVALID_SOCKET || len == NULL || ( buffer != NULL && *len == 0 ) ) {
 		return 0;
@@ -164,14 +180,21 @@ int N_recvfrom( int sck, void* buffer, unsigned int* len, unsigned long* ip, uns
 		return 0;
 	}
 
-	size = sizeof( addr );
+	memset( &addr, 0, sizeof( addr ) );
 	addr.sin_family = AF_INET;
 
-	if( recvfrom( sck, buffer, arg, 0, ( struct sockaddr* ) &addr, &size ) == -1 ) {
+	if( ( *len = recvfrom( sck, buffer, arg, 0, ( struct sockaddr* ) &addr, &size ) ) == -1 ) {
 		fprintf( stderr, "\n%s failed: %d\n", __FUNCTION__, N.lastError = WSAGetLastError( ) );
 
 		return 0;
 	}
+
+	#if DEBUG
+	printf( "<< %u\n", *len );
+	#endif
+
+	*ip = addr.sin_addr.s_addr;
+	*port = htons( addr.sin_port );
 
 	return 1;
 }

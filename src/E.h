@@ -6,6 +6,7 @@
 #include "T.h"
 #include "utils.h"
 
+extern int E_isLocalNode( unsigned short port );
 extern int E_isInit( void );
 extern int E_init( pcap_if_t* dev );
 extern void E_postInit( void );

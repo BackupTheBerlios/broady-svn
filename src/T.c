@@ -24,6 +24,8 @@ int T_fire( T_t* timer ) {
 }
 
 void T_init( T_t* timer ) {
+	unsigned int interval = timer->interval;
 	memset( timer, 0, sizeof( *timer ) );
+	timer->interval = interval;
 	timer->current = GetTickCount( );
 }

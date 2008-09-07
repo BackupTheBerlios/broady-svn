@@ -4,11 +4,15 @@
 #include "E.h"
 
 int L_sendPacket( client_t* client, const char* packet, unsigned int len, unsigned short port ) {
+	ip_address ipaddr = *( ip_address* ) &client->node_ip;
+
 	if( packet == NULL || len == 0 ) {
 		return 0;
 	}
 
-	if( !N_sendto( client->node, packet, len, client->node_ip, port ) ) {
+	printf( "L >> Transmitting broadcast to %u.%u.%u.%u:%u\n", ipaddr.byte1, ipaddr.byte2, ipaddr.byte3, ipaddr.byte4, port );
+
+	if( !N_sendto( client->node, packet, &len, client->node_ip, port ) ) {
 		return 0;
 	}
 
@@ -20,7 +24,9 @@ int L_sendBroadcast( client_t* client, const char* packet, unsigned int len, uns
 		return 0;
 	}
 
-	if( !N_sendto( client->node, packet, len, 0xFFFFFFFF, port ) ) {
+	printf( "L >> Transmitting broadcast to 255.255.255.255:%u\n", port );
+
+	if( !N_sendto( client->node, packet, &len, 0xFFFFFFFF, port ) ) {
 		return 0;
 	}
 
@@ -33,6 +39,13 @@ int L_nodeCreate( unsigned long* ip, unsigned short* port, int* node ) {
 	}
 
 	if( !N_socket( node ) ) {
+		*node = -1;
+
+		return 0;
+	}
+
+	if( !N_setBroadcast( *node, 1 ) ) {
+		N_close( *node );
 		*node = -1;
 
 		return 0;

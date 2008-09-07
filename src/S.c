@@ -54,15 +54,21 @@ int S_step( void ) {
 }
 
 static int S_filter_packet( ip_header* ih, udp_header* uh ) {
+	unsigned long daddr = 0xFFFFFFFF;
+
 	if( memcmp( &S.ip, &ih->saddr, 4 ) != 0 ) {
 		return 0;
 	}
 
-	if( ih->daddr.byte1 == 0xFF && ih->daddr.byte2 == 0xFF && ih->daddr.byte3 == 0xFF && ih->daddr.byte4 == 0xFF ) {
-		return 1;
+	if( memcmp( &ih->daddr, &daddr, 4 ) != 0 ) {
+		return 0;
 	}
 
-	return 0;
+	if( E_isLocalNode( htons( uh->sport ) ) ) {
+		return 0;
+	}
+
+	return 1;
 }
 
 static void S_packet_handler( unsigned char* param, const struct pcap_pkthdr* header, const unsigned char* pkt_data ) {
