@@ -18,6 +18,7 @@ int PreInit( void ) {
 
 	/* load config */
 	C_network = C_loadNetwork( "network.txt" );
+	_getch( );
 
 	alldevs = get_alldevs( );
 

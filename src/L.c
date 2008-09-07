@@ -1,5 +1,7 @@
 #include "L.h"
 #include "N.h"
+#include "M.h"
+#include "E.h"
 
 int L_sendPacket( client_t* client, const char* packet, unsigned int len, unsigned short port ) {
 	if( packet == NULL || len == 0 ) {
@@ -57,7 +59,7 @@ static int L_parse( client_t* client, unsigned char* packet, unsigned int len, u
 		return 0;
 	}
 
-	retval = E_sendPacket( client, packet, len, ip, port );
+	retval = E_sendPacket( client, packet, len, port );
 	M_free( packet );
 
 	return retval;

@@ -1,16 +1,20 @@
 #include "C.h"
 #include "M.h"
+#include "utils.h"
 #include <stdlib.h>
 #include <stdio.h>
 
 netNode_t* C_loadNetwork( const char* path ) {
 	netNode_t* node = NULL;
+	netNode_t* next = NULL;
 	FILE* fp = NULL;
-	char buffer[ 16 ];
+	/*char buffer[ 16 ];
 	int comment_pi = 0;
 	int comment_in = 0;
 	int comment_po = 0;
-	int pos = 0;
+	int pos = 0;*/
+	char buffer[ 256 ];
+	ip_address ip;
 
 	fp = fopen( path, "rt" );
 
@@ -18,7 +22,9 @@ netNode_t* C_loadNetwork( const char* path ) {
 		return NULL;
 	}
 
-	buffer[ 0 ] = 0;
+	memset( &ip, 0, sizeof( ip ) );
+
+	/*buffer[ 0 ] = 0;
 
 	while( !feof( fp ) ) {
 		unsigned char c = 0;
@@ -69,6 +75,24 @@ netNode_t* C_loadNetwork( const char* path ) {
 		} else if( c >= '0' && c <= '9' ) {
 			buffer[ pos++ ] = c;
 		}
+	}*/
+
+	while( !feof( fp ) ) {
+		fscanf( fp, "%s = %u", buffer, &ip.byte1 );
+		printf( "%s = ", buffer );
+		fscanf( fp, "%s", buffer );
+		ip.byte2 = atol( buffer );
+		fscanf( fp, "%s", buffer );
+		ip.byte3 = atol( buffer );
+		fscanf( fp, "%s\n", buffer );
+		ip.byte4 = atol( buffer );
+		printf( "%u.%u.%u.%u\n", ip.byte1, ip.byte2, ip.byte3, ip.byte4 );
+
+		next = node;
+		node = malloc( sizeof( *node ) );
+		node->next = next;
+		memcpy( &node->ip, &ip, sizeof( ip ) );
+		node->port = 16788;
 	}
 
 	fclose( fp );

@@ -187,7 +187,7 @@ static int E_sendPing( client_t* client, unsigned int id ) {
 	return N_sendto( E.sck, buffer, len, client->ip, client->port );
 }
 
-static int E_sendPacket( client_t* client, const unsigned char* packet, unsigned int plen, unsigned short port ) {
+int E_sendPacket( client_t* client, const unsigned char* packet, unsigned int plen, unsigned short port ) {
 	char buffer[ 2048 ];
 	unsigned int len = 0;
 
