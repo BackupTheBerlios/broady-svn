@@ -421,7 +421,9 @@ static int E_read( unsigned int len ) {
 
 	if( !N_recvfrom( E.sck, buffer, &len, &ip, &port ) ) {
 		/* ignore the WSAECONNRESET message */
-		if( N_lastError( ) != WSAECONNRESET ) {
+		if( N_lastError( ) == WSAECONNRESET ) {
+			return 1;
+		} else {
 			fprintf( stderr, "\nError receiving.\n" );
 			M_free( buffer );
 
