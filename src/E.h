@@ -8,10 +8,10 @@
 
 extern int E_isInit( void );
 extern int E_init( pcap_if_t* dev );
-extern void E_quit( void );
-
+extern void E_postInit( void );
 extern int E_step( void );
-
+extern void E_preQuit( void );
+extern void E_quit( void );
 extern int E_in_S( const unsigned char* packet, unsigned int len );
 
 #endif /* _E_H_ */

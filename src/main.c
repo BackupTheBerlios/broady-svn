@@ -4,19 +4,21 @@
 #include "L.h"
 #include "N.h"
 #include "M.h"
+#include "C.h"
+#include <conio.h>
 
-/* these are just temporary solutions to a config file */
-const ip_address network_list[] = {
-	{ 5, 76, 128, 83 },		/* Tide */
-	{ 5, 23, 238, 188 },	/* Wolf */
-};
+netNode_t* C_network = NULL;
 
 static pcap_if_t* alldevs = NULL;
 static pcap_if_t* emit_dev = NULL;
 static pcap_if_t* sniff_dev = NULL;
 
 int PreInit( void ) {
+	freopen( "stderr.txt", "wt", stderr );
+
 	/* load config */
+	C_network = C_loadNetwork( "network.txt" );
+
 	alldevs = get_alldevs( );
 
 	if( alldevs == NULL ) {
@@ -78,6 +80,8 @@ int PostInit( void ) {
 	sniff_dev = NULL;
 	emit_dev = NULL;
 
+	E_postInit( );
+
 	return 1;
 }
 
@@ -98,6 +102,7 @@ int Step( void ) {
 }
 
 void PreQuit( void ) {
+	E_preQuit( );
 }
 
 void Quit( void ) {
@@ -128,8 +133,13 @@ int main( void ) {
 		return -1;
 	}
 
-	while( Step( ) )
-		;
+	while( Step( ) ) {
+		if( _kbhit( ) ) {
+			if( ( _getch( ) & 223 ) == 'Q' ) {
+				break;
+			}
+		}
+	}
 
 	PreQuit( );
 	Quit( );

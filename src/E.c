@@ -3,6 +3,7 @@
 #include "L.h"
 #include "T.h"
 #include "M.h"
+#include "C.h"
 #include "utils.h"
 
 #define E_PACKET_PING			1
@@ -186,6 +187,22 @@ static int E_sendPing( client_t* client, unsigned int id ) {
 	return N_sendto( E.sck, buffer, len, client->ip, client->port );
 }
 
+static int E_sendPacket( client_t* client, const unsigned char* packet, unsigned int plen, unsigned short port ) {
+	char buffer[ 2048 ];
+	unsigned int len = 0;
+
+	*buffer = E_PACKET_DATA;
+	len++;
+
+	memcpy( buffer + len, &port, sizeof( port ) );
+	len += sizeof( port );
+
+	memcpy( buffer + len, packet, plen );
+	len += plen;
+
+	return N_sendto( E.sck, buffer, len, client->ip, client->port );
+}
+
 static int E_sendBroadcast( client_t* client, const unsigned char* packet, unsigned int plen, unsigned short port ) {
 	char buffer[ 2048 ];
 	unsigned int len = 0;
@@ -202,8 +219,18 @@ static int E_sendBroadcast( client_t* client, const unsigned char* packet, unsig
 	return N_sendto( E.sck, buffer, len, client->ip, client->port );
 }
 
+static int E_sendGoodbye( client_t* client ) {
+	char buffer[ 16 ];
+	unsigned int len = 0;
+
+	*buffer = E_PACKET_QUIT;
+	len++;
+
+	return N_sendto( E.sck, buffer, len, client->ip, client->port );
+}
+
 static int E_sendShake( unsigned int id, unsigned long ip, unsigned short port ) {
-	char buffer[ 256 ];
+	char buffer[ 16 ];
 	unsigned int len = 0;
 
 	*buffer = E_PACKET_SHAKE;
@@ -254,7 +281,7 @@ static int E_onBroadcast( unsigned char* packet, unsigned int len, unsigned long
 	client = E_getClient( ip, port );
 
 	if( client == NULL ) {
-		return 0;
+		return 1;
 	}
 
 	memcpy( &bport, packet, sizeof( bport ) );
@@ -292,17 +319,17 @@ static int E_onPing( unsigned char* packet, unsigned int len, unsigned long ip, 
 	client = E_getClient( ip, port );
 
 	if( client == NULL ) {
-		return 0;
+		return 1;
 	}
 
 	memcpy( &id, packet, sizeof( id ) );
 	packet += sizeof( id );
 	len -= sizeof( id );
 
-	if( client->lastPingID == id ) {
-		/* okay, we got our reply... */
-	} else {
-		E_sendPing( client, id );
+	if( client->lastPingID != id ) {
+		if( !E_sendPing( client, id ) ) {
+			return 0;
+		}
 	}
 
 	T_init( &client->pingTimeout );
@@ -312,12 +339,25 @@ static int E_onPing( unsigned char* packet, unsigned int len, unsigned long ip, 
 }
 
 static int E_onData( unsigned char* packet, unsigned int len, unsigned long ip, unsigned short port ) {
-	/* TODO */
-	return 1;
+	client_t* client = NULL;
+	unsigned short sport = 0;
+
+	client = E_getClient( ip, port );
+
+	if( client == NULL ) {
+		return 1;
+	}
+
+	memcpy( &sport, packet, sizeof( sport ) );
+	packet += sizeof( sport );
+	len -= sizeof( sport );
+
+	return L_sendPacket( client, packet, len, sport );
 }
 
 static int E_onQuit( unsigned char* packet, unsigned int len, unsigned long ip, unsigned short port ) {
-	/* TODO */
+	E_delClient( ip, port );
+
 	return 1;
 }
 
@@ -326,8 +366,10 @@ static int E_parse( unsigned char* packet, unsigned int len, unsigned long ip, u
 	unsigned char* data = packet + 1;
 
 	if( len == 0 ) {
-		return 0;
+		return 1;
 	}
+
+	len--;
 
 	switch( *packet ) {
 		default: {
@@ -387,6 +429,28 @@ static int E_read( unsigned int len ) {
 	return E_parse( buffer, len, ip, port );
 }
 
+void E_preQuit( void ) {
+	client_t* next = NULL;
+
+	while( E.clients ) {
+		next = E.clients->next;
+		E_sendGoodbye( E.clients );
+		free( E.clients );
+		E.clients = next;
+	}
+}
+
+void E_postInit( void ) {
+	netNode_t* node = NULL;
+
+	node = C_network;
+
+	while( node ) {
+		E_sendShake( 0 /* TODO */, node->ip, node->port );
+		node = node->next;
+	}
+}
+
 int E_step( void ) {
 	unsigned int len = 0;
 	client_t* client = NULL;
@@ -419,6 +483,20 @@ int E_step( void ) {
 			T_init( &client->pingInterval );
 		}
 
+		do {
+			if( !N_ioctl( client->node, &len ) ) {
+				/* TODO: Process this error. */
+				break;
+			}
+
+			if( len <= 0 ) {
+				break;
+			}
+
+			L_read( client, len );
+
+		} while( 0 );
+
 		client = client->next;
 	}
 
@@ -449,14 +527,16 @@ int E_in_S( const unsigned char* packet, unsigned int plen ) {
 	len = uh->len;
 	data = ( const unsigned char* ) uh + sizeof( *uh );
 
-	printf( "Transferring %u bytes\n", len );
+	/*printf( "Transferring %u bytes\n", len );*/
 
 	for( client = E.clients; client; client = client->next ) {
 		/*if( !client->registered ) {
 			continue;
 		}*/
 
-		E_sendBroadcast( client, data, len, port );
+		if( !E_sendBroadcast( client, data, len, port ) ) {
+			/* TODO: handle this error */
+		}
 	}
 
 	return 1;

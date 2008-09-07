@@ -59,9 +59,8 @@ pcap_t* open_iface( pcap_if_t* d ) {
 	/* Open the adapter */
 	if( ( adhandle = pcap_open_live(	d->name,	/* name of the device */
 										65536,		/* portion of the packet to capture. */
-													/* 65536 grants that the whole packet will be captured on all the MACs. */
-										1,			/* promiscuous mode (nonzero means promiscuous) */
-										1000,		/* read timeout */
+										1,			/* promiscuous mode */
+										100,		/* read timeout */
 										errbuf		/* error buffer */
 									) ) == NULL ) {
 		fprintf( stderr, "\nUnable to open the adapter. %s is not supported by WinPcap\n", d->name );
@@ -106,8 +105,8 @@ pcap_t* open_iface( pcap_if_t* d ) {
 
 pcap_if_t* get_iface( char* desc, pcap_if_t* alldevs ) {
 	int i = 0;
-	int inum;
-	pcap_if_t* d;
+	int inum = 0;
+	pcap_if_t* d = NULL;
 
 	system( "cls" );
 
