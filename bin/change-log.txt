@@ -1,0 +1,8 @@
+Change Log for Broady - http://developer.berlios.de/projects/broady/
+
+Version 1.0.0 - 2008-09-07
+	Comments:
+	- First public release.
+
+	Known issues:
+	- There is a memory leak with the clients. It should not cause any problem.

@@ -1,0 +1,27 @@
+Release Notes for Broady - http://developer.berlios.de/projects/broady/
+
+Project Name: Broady
+Project Idea: Wolf McCloud
+Project Leader: Wolf McCloud
+Lead Programmer: Wolf McCloud
+
+In other words, I worked alone on this...
+
+Special thanks to TideUltra, who helped me test this until it worked. Sorry for wasting your time, Tide, now let's play some old LAN-only games. =D
+
+
+Finally, Broady has been tested and it works.
+It might have a few bugs and there is a known memory leak, but it shouldn't cause you any trouble.
+
+
+Q: How do I use it?
+A: Pretty simple, when it loads, it displays what it has loaded from the "network.txt" file. If it did not load correctly, close Broady, change the file, and try again.
+   To pass this screen, simply press any key.
+   Then, you have to select your local adapter (SNIFFING), the one on which you will listen for broadcast packets.
+   Then, you have to select the adapter you will be using to communicate with other Broady users (TRANSMITTING). It can be the same as the sniffing adapter.
+   That's it, you now just let it run. To quit it, press 'q'. It will go through a clean exit and will log any error.
+
+Q: In my "stderr.txt" file, I see "N_recvfrom failed: 10054". What should I do?
+A: This is simply an error saying it was unable to reach the remote computer. You can ignore those.
+
+For any questions or comments, please visit http://developer.berlios.de/projects/broady/
