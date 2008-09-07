@@ -4,6 +4,7 @@
 
 typedef struct N_s {
 	int init;
+	int lastError;
 
 } N_t;
 
@@ -20,7 +21,7 @@ int N_init( void ) {
 		return 0;
 	}
 
-	if( WSAStartup( 0x0101, &wsdata ) ) {
+	if( ( N.lastError = WSAStartup( 0x0101, &wsdata ) ) ) {
 		fprintf( stderr, "\n%s failed: %ld\n", __FUNCTION__, GetLastError( ) );
 
 		return 0;
@@ -44,7 +45,7 @@ int N_getLAddr( int sck, unsigned long* ip, unsigned short* port ) {
 	int namelen = sizeof( name );
 
 	if( getsockname( sck, ( struct sockaddr* ) &name, &namelen ) == -1 ) {
-		fprintf( stderr, "\n%s failed: %d\n", __FUNCTION__, WSAGetLastError( ) );
+		fprintf( stderr, "\n%s failed: %d\n", __FUNCTION__, N.lastError = WSAGetLastError( ) );
 
 		return 0;
 	}
@@ -63,7 +64,7 @@ int N_socket( int* sck ) {
 	*sck = socket( PF_INET, SOCK_DGRAM, IPPROTO_UDP );
 
 	if( *sck == INVALID_SOCKET ) {
-		fprintf( stderr, "\n%s failed: %d\n", __FUNCTION__, WSAGetLastError( ) );
+		fprintf( stderr, "\n%s failed: %d\n", __FUNCTION__, N.lastError = WSAGetLastError( ) );
 
 		return 0;
 	}
@@ -73,7 +74,7 @@ int N_socket( int* sck ) {
 
 int N_close( int sck ) {
 	if( closesocket( sck ) == -1 ) {
-		fprintf( stderr, "\n%s failed: %d\n", __FUNCTION__, WSAGetLastError( ) );
+		fprintf( stderr, "\n%s failed: %d\n", __FUNCTION__, N.lastError = WSAGetLastError( ) );
 		perror( NULL );
 
 		return 0;
@@ -94,7 +95,7 @@ int N_sendto( int sck, const void* data, unsigned int len, unsigned long ip, uns
 	addr.sin_addr.s_addr = ip;
 
 	if( sendto( sck, data, len, 0, ( const struct sockaddr* ) &addr, sizeof( addr ) ) == -1 ) {
-		fprintf( stderr, "\n%s failed: %d\n", __FUNCTION__, WSAGetLastError( ) );
+		fprintf( stderr, "\n%s failed: %d\n", __FUNCTION__, N.lastError = WSAGetLastError( ) );
 
 		return 0;
 	}
@@ -110,7 +111,7 @@ int N_ioctl( int sck, unsigned int* len ) {
 	}
 
 	if( ioctlsocket( sck, FIONREAD, &arg ) == -1 ) {
-		fprintf( stderr, "\n%s failed: %d\n", __FUNCTION__, WSAGetLastError( ) );
+		fprintf( stderr, "\n%s failed: %d\n", __FUNCTION__, N.lastError = WSAGetLastError( ) );
 
 		return 0;
 	}
@@ -128,7 +129,7 @@ int N_bind( int sck, unsigned long ip, unsigned short port ) {
 	addr.sin_addr.s_addr = ip;
 
 	if( bind( sck, ( const struct sockaddr* ) &addr, sizeof( addr ) ) == -1 ) {
-		fprintf( stderr, "\n%s failed: %d\n", __FUNCTION__, WSAGetLastError( ) );
+		fprintf( stderr, "\n%s failed: %d\n", __FUNCTION__, N.lastError = WSAGetLastError( ) );
 
 		return 0;
 	}
@@ -146,7 +147,7 @@ int N_recvfrom( int sck, void* buffer, unsigned int* len, unsigned long* ip, uns
 	}
 
 	if( ioctlsocket( sck, FIONREAD, &arg ) == -1 ) {
-		fprintf( stderr, "\n%s failed: %d\n", __FUNCTION__, WSAGetLastError( ) );
+		fprintf( stderr, "\n%s failed: %d\n", __FUNCTION__, N.lastError = WSAGetLastError( ) );
 
 		return 0;
 	}
@@ -167,10 +168,14 @@ int N_recvfrom( int sck, void* buffer, unsigned int* len, unsigned long* ip, uns
 	addr.sin_family = AF_INET;
 
 	if( recvfrom( sck, buffer, arg, 0, ( struct sockaddr* ) &addr, &size ) == -1 ) {
-		fprintf( stderr, "\n%s failed: %d\n", __FUNCTION__, WSAGetLastError( ) );
+		fprintf( stderr, "\n%s failed: %d\n", __FUNCTION__, N.lastError = WSAGetLastError( ) );
 
 		return 0;
 	}
 
 	return 1;
+}
+
+int N_lastError( void ) {
+	return N.lastError;
 }

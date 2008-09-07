@@ -420,10 +420,13 @@ static int E_read( unsigned int len ) {
 	buffer = M_alloc( len );
 
 	if( !N_recvfrom( E.sck, buffer, &len, &ip, &port ) ) {
-		fprintf( stderr, "\nError receiving.\n" );
-		M_free( buffer );
+		/* ignore the WSAECONNRESET message */
+		if( N_lastError( ) != WSAECONNRESET ) {
+			fprintf( stderr, "\nError receiving.\n" );
+			M_free( buffer );
 
-		return 0;
+			return 0;
+		}
 	}
 
 	return E_parse( buffer, len, ip, port );

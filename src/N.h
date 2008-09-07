@@ -5,6 +5,7 @@ extern int N_isInit( void );
 extern int N_init( void );
 extern void N_quit( void );
 
+extern int N_lastError( void );
 extern int N_socket( int* sck );
 extern int N_close( int sck );
 extern int N_ioctl( int sck, unsigned int* len );
