@@ -1,27 +1,5 @@
 #include "utils.h"
 
-unsigned short ip_sum_calc( unsigned short len_ip_header, unsigned char buff[] ) {
-	unsigned short word16;
-	unsigned long sum = 0;
-	unsigned short i;
-
-	/* make 16 bit words out of every two adjacent 8 bit words in the packet and add them up */
-	for( i = 0; i < len_ip_header; i = i + 2 ) {
-		word16 =( ( buff[ i ] << 8 ) & 0xFF00 ) + ( buff[ i + 1 ] & 0xFF );
-		sum = sum + ( unsigned long ) word16;
-	}
-
-	/* take only 16 bits out of the 32 bit sum and add up the carries */
-	while( sum >> 16 ) {
-		sum = ( sum & 0xFFFF ) + ( sum >> 16 );
-	}
-
-	/* one's complement the result */
-	sum = ~sum;
-
-	return ( unsigned short ) sum;
-}
-
 int free_alldevs( pcap_if_t* alldevs ) {
 	if( alldevs == NULL ) {
 		return 0;

@@ -10,7 +10,9 @@ int L_sendPacket( client_t* client, const char* packet, unsigned int len, unsign
 		return 0;
 	}
 
+	#if DEBUG
 	printf( "L >> Transmitting broadcast to %u.%u.%u.%u:%u\n", ipaddr.byte1, ipaddr.byte2, ipaddr.byte3, ipaddr.byte4, port );
+	#endif
 
 	if( !N_sendto( client->node, packet, &len, client->node_ip, port ) ) {
 		return 0;
@@ -24,7 +26,9 @@ int L_sendBroadcast( client_t* client, const char* packet, unsigned int len, uns
 		return 0;
 	}
 
+	#if DEBUG
 	printf( "L >> Transmitting broadcast to 255.255.255.255:%u\n", port );
+	#endif
 
 	if( !N_sendto( client->node, packet, &len, 0xFFFFFFFF, port ) ) {
 		return 0;

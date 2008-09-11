@@ -617,7 +617,7 @@ int E_step( void ) {
 				break;
 			}
 
-			if( len <= 0 ) {
+			if( len == 0 ) {
 				break;
 			}
 
