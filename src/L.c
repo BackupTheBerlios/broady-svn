@@ -7,6 +7,7 @@ int L_sendPacket( client_t* client, const char* packet, unsigned int len, unsign
 	ip_address ipaddr = *( ip_address* ) &client->node_ip;
 
 	if( packet == NULL || len == 0 ) {
+		printf( "%s failed: length is null...\n", __FUNCTION__ );
 		return 0;
 	}
 
@@ -15,6 +16,10 @@ int L_sendPacket( client_t* client, const char* packet, unsigned int len, unsign
 	#endif
 
 	if( !N_sendto( client->node, packet, &len, client->node_ip, port ) ) {
+		if( N_lastError( ) == WSAEADDRNOTAVAIL ) {
+			return 1;
+		}
+
 		return 0;
 	}
 
@@ -23,6 +28,7 @@ int L_sendPacket( client_t* client, const char* packet, unsigned int len, unsign
 
 int L_sendBroadcast( client_t* client, const char* packet, unsigned int len, unsigned short port ) {
 	if( packet == NULL || len == 0 ) {
+		printf( "%s failed: length is null...\n", __FUNCTION__ );
 		return 0;
 	}
 
@@ -31,6 +37,10 @@ int L_sendBroadcast( client_t* client, const char* packet, unsigned int len, uns
 	#endif
 
 	if( !N_sendto( client->node, packet, &len, 0xFFFFFFFF, port ) ) {
+		if( N_lastError( ) == WSAEADDRNOTAVAIL ) {
+			return 1;
+		}
+
 		return 0;
 	}
 

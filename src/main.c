@@ -73,7 +73,7 @@ int Init( void ) {
 }
 
 int PostInit( void ) {
-	/*freopen( "logfile.log", "wt", stdout );*/
+	freopen( "logfile.log", "wt", stdout );
 	printf( "Listening on %s\n", sniff_dev->description );
 	printf( "Transmitting on %s\n\n", emit_dev->description );
 
